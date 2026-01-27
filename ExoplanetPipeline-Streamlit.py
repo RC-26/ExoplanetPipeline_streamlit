@@ -1,5 +1,3 @@
-pip install matplotlib timeit PIL ics icalendar streamlit astropy astroquery astroplan
-
 import numpy as np ; import math
 import pandas as pd
 import matplotlib as mpl
