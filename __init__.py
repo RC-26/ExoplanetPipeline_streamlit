@@ -1,1 +1,1 @@
-pip install astroquery astropy astroplan ics streamlit streamlit_jupyter timezonefinder
+pip install matplotlib astroquery astropy astroplan ics streamlit streamlit_jupyter timezonefinder
