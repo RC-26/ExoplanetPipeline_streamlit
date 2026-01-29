@@ -122,6 +122,7 @@ def Get_NEAdata (targets = None):
 # Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
 # if Display_Option == 'Yes':
 #     NEAcsv = Get_NEAdata()
+NEAcsv = Get_NEAdata()
 st.dataframe(NEAcsv)
 st.write ('Host Stars:', len(sorted(set(NEAcsv['Host Name']))), '| Exoplanets', len(sorted(set(NEAcsv['Planet Name']))))
 
