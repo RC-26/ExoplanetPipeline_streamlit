@@ -67,7 +67,7 @@ if t_cb:
                 ['NSO-17-CDK'],
                 ['PROMPT-USASK', 'PROMPT-USASK-2', 'USASK-14']
             ]
-            
+
             def Timezone_Finder (lon, lat, elev):
                 location = EarthLocation(lon =lon*u.deg, lat = lat*u.deg, height = elev*u.m)
                 tf = TimezoneFinder()
@@ -80,9 +80,9 @@ if t_cb:
                     local_timezone = pytz.timezone(timezone_str)
                     dt_local = dt_utc.astimezone(local_timezone)
                     dt_local_str = dt_local.strftime('%Y-%m-%d %H:%M:%S %Z%z')
-            
+
                     return (timezone_str, int(dt_local_str[-5:-2].replace('0', '')))
-            
+
             SN_timezone = [] ; SN_utcoffset = [] ; obs_tz = {}
             tz_offset = {'UTC' : 0, 'Asia/Manila' : 8}
             for lon, lat, elev in zip(SN_long, SN_lat, SN_elev):
@@ -93,7 +93,7 @@ if t_cb:
                 tz_offset.update ({tz  : offset})
 
             tz_offset = dict(sorted(tz_offset.items(), key=lambda item: item[1]))
-            
+
             obs_list = [SN_obs, SN_long, SN_lat, SN_elev, SN_aperture, SN_telescopes, SN_timezone, SN_utcoffset]
             SN_OBS = pd.DataFrame()
             SN_OBS['Observatory'] = SN_obs
@@ -108,11 +108,11 @@ if t_cb:
             # SN_OBS['Aperture']    = SN_aperture
             # SN_OBS['Telescopes']  = SN_telescopes
             # SN_OBS.to_csv('SN_OBS.csv', index = False, header = True)
-            
+
             ####################################################################################################
             st.subheader ('Get_NEAdata')
             st.caption ('This function extracts relevant data of identified exoplanets in the NASA Exoplanet Archive (NEA)')
-            
+
             def Get_NEAdata (targets = None):
                 if targets != None:
                     if ',' in targets:
@@ -121,7 +121,7 @@ if t_cb:
                         targets = [targets]
                     if type(targets[0]) == list:
                       targets = targets[0]
-            
+
                 not_null = []
                 select_data = ['hostname'  ,        'pl_name',             'ra',        'dec',
                                'sy_dist'   ,        'sy_snum',        'sy_pnum',
@@ -134,14 +134,14 @@ if t_cb:
                                'pl_orblper',     'pl_orbtper', 'pl_orbeccen',
                                'pl_trandep'
                               ]
-            
+
                 cond_standards = ['hostname' , 'pl_name'   , 'ra', 'dec', 'st_rad', 'pl_rade',
                                   'pl_orbper', 'pl_tranmid', 'pl_trandur']
                 not_null    = [column + ' is not null' for column in select_data if column in cond_standards or 'err' in column]
                 # not_null    = [column + ' is not null' for column in select_data]
                 other_conds = ["discoverymethod = 'Transit'", 'tran_flag = 1']
                 where_conds = np.append (not_null, other_conds)
-            
+
                 select_text = '' ; where_text = ''
                 for d in select_data:
                     if    d == select_data[-1]: select_text += '%s' % d
@@ -149,7 +149,7 @@ if t_cb:
                 for c in where_conds:
                     if    c == where_conds[-1]:  where_text += '%s' % c
                     else: where_text += '%s AND ' % c
-            
+
                 NEAdata = NEA.query_criteria(
                     table  = "pscomppars",
                     select = select_text,
@@ -191,7 +191,7 @@ if t_cb:
                               inplace = True)
                 NEAcsv.to_csv('NEAcsv.csv', index = False, header = True)
                 NEAcsv = pd.read_csv('NEAcsv.csv')
-            
+
                 return (NEAcsv)
 
             Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
@@ -199,29 +199,29 @@ if t_cb:
                 NEAcsv = Get_NEAdata()
                 st.dataframe(NEAcsv)
                 st.write ('Host Stars:', len(sorted(set(NEAcsv['Host Name']))), '| Exoplanets', len(sorted(set(NEAcsv['Planet Name']))))
-            
+
             ####################################################################################################
             st.subheader('Get_Transits')
             st.caption("This function uses NEA's documented transit algorithm to predict the transit events of target(s), either a specific planet(s) or a system(s), within a specified time window.")
-            
+
             def Get_Transits (targets, start_date, end_date, obs_csv = SN_OBS):
                 # targets    = input ('%-64s | ' % "Name of Observation Target:     (Example: Proxima Centauri)")
                 if ',' in targets:
                     targets = targets.split(', ')
                 elif ',' not in targets and type(targets) != list:
                     targets = [targets]
-            
+
                 # start_date = input ('%-64s | ' % "Start Date: YYYY-MM-DDTHH:MM:SS (Example: '2025-12-01T18:00:00')")
                 # end_date   = input ('%-64s | ' % "End Date:   YYYY-MM-DDTHH:MM:SS (Example: '2025-12-31T18:00:00')")
                 # Day_skip   = input ('%-64s | ' % "Number of day(s) to skip:       (Example: 1)")
 
                 obs = obs_csv['Observatory'] ; longs = obs_csv['Longitude'] ; lats = obs_csv['Latitude'] ; elevs = obs_csv['Elevation']
-            
+
                 NEAcsv = Get_NEAdata (targets)
-            
+
                 time_tdb = at.Time(start_date).tdb
                 time_jd  = time_tdb.jd * u.day
-            
+
                 NextTransits_ALL    = []
                 NextTransits_Tearly = [] ; NextTransits_err1 = []
                 NextTransits_Tlate  = [] ; NextTransits_err2 = []
@@ -230,15 +230,15 @@ if t_cb:
                     MidTransit           = at.Time(NEAcsv['Transit Midpoint [days]' ][i], format = 'jd', scale = 'utc').jd * u.day
                     MidTransit_err1      =         NEAcsv['Transit Midpoint [err 1]'][i] * u.day
                     MidTransit_err2      =         NEAcsv['Transit Midpoint [err 2]'][i] * u.day
-            
+
                     OrbitalPeriod        = at.Time(NEAcsv['Orbital Period [days]' ]  [i], format = 'jd', scale = 'utc').jd * u.day
                     OrbitalPeriod_err1   =         NEAcsv['Orbital Period [err 1]']  [i] * u.day
                     OrbitalPeriod_err2   =         NEAcsv['Orbital Period [err 2]']  [i] * u.day
-            
+
                     TransitDuration      =         NEAcsv['Transit Duration [hours]'][i] * u.hour
                     TransitDuration_err1 =         NEAcsv['Transit Duration [err 1]'][i] * u.hour
                     TransitDuration_err2 =         NEAcsv['Transit Duration [err 2]'][i] * u.hour
-            
+
                     k = math.ceil((time_jd - MidTransit) / OrbitalPeriod)
                     if k < 0:
                         k = 0
@@ -250,27 +250,27 @@ if t_cb:
                         NextTransit_err2 = MidTransit_err2 + epochs * np.asarray(OrbitalPeriod_err2)*u.day
                         nexttransits = [float(at.Time(jd, format = 'jd', scale = 'utc').value) for jd in nexttransit]
                         epoch_num += 1
-            
+
                     # NextTransits     = [date       for date       in     nexttransits                    if date <= end_date.jd]
                     # # # print (NEAcsv['Planet Name'][i], OrbitalPeriod.value, OrbitalPeriod.value/2)
                     # NextTransits     = [(date + np.round(OrbitalPeriod.value/2)) for date in nexttransits          if date <= end_date.jd]
                     NextTransits     = [date for date in nexttransits          if date <= end_date.jd]
                     NextTransit_err1 = [err1.value for date, err1 in zip(nexttransits, NextTransit_err1) if date <= end_date.jd]
                     NextTransit_err2 = [err2.value for date, err2 in zip(nexttransits, NextTransit_err2) if date <= end_date.jd]
-            
+
                     T_early = epochs * np.asarray(OrbitalPeriod_err1)*u.day + MidTransit_err1 + 0.5 * TransitDuration + TransitDuration_err1
                     T_late  = epochs * np.asarray(OrbitalPeriod_err2)*u.day + MidTransit_err2 + 0.5 * TransitDuration + TransitDuration_err2
-            
+
                     NextTransits_ALL.append    (NextTransits)
                     NextTransits_Tearly.append ((T_early/u.day).value) ; NextTransits_err1.append (NextTransit_err1)
                     NextTransits_Tlate.append  ((T_late /u.day).value) ; NextTransits_err2.append (NextTransit_err2)
-            
+
                 NEAcsv['Next Transits [JD]'   ] = NextTransits_ALL
                 NEAcsv['Next Transits [err 1]'] = NextTransits_err1   ; NEAcsv['Next Transits [err 2]'] = NextTransits_err2
                 NEAcsv['Next Transits [early]'] = NextTransits_Tearly ; NEAcsv['Next Transits [late]' ] = NextTransits_Tlate
             
                 NEAcsv.to_csv('NEAcsv.csv', index = False, header = True)
-            
+
                 return (NEAcsv)
 
             NEAcsv = Get_Transits(
@@ -278,22 +278,16 @@ if t_cb:
             start_date = str(start_date),
             end_date   = str(end_date),
             )
-            
+
             # NEAcsv = NEAcsv[NEAcsv['Host Name'].isin(['TRAPPIST-1', 'Kepler', 'WASP', 'XO'])].reset_index()
             st.dataframe(NEAcsv)
-            
-            ####################################################################################################
-            st.subheader ('Generate_Transit_Dates')
-            st.caption   ("This function extracts only the visible transit events per observatory in SkyNet.")
-            st.caption   ("The data in this table are the ingress, midpoint, and the egress of the predicted transit events respectively.")
-            
+
             ####################################################################################################
             st.subheader ('Generate_Transit_Dates')
             st.caption   ("This function extracts only the visible transit events per observatory in SkyNet.")
             st.caption   ("The data in this table are the ingress, midpoint, and the egress of the predicted transit events respectively.")
             
             def Generate_Transit_Dates (CSV, timezone = 'UTC', obs_csv = SN_OBS):
-                st.write('Generate_Transit_Dates || %s %s' % (timezone, tz_offset[timezone]))
                 obs_names = obs_csv['Observatory'] ; longs = obs_csv['Longitude'] ; lats = obs_csv['Latitude'] ; elevs = obs_csv['Elevation']
                 DF = pd.DataFrame()
                 Obs_All     = [] ; Host_All     = [] ; Planet_All = []
@@ -338,11 +332,12 @@ if t_cb:
                 DF_utc = DF
             
                 return (DF_utc)
-            
+
             options  = [(tz, offset) for tz, offset in tz_offset.items()]
             timezone = st.selectbox (label = 'Timezone of output dates / UTC offset', options = options, index = options.index(('UTC', 0)))
             tz_cb    = st.checkbox  ('Submit Timezone')
             if tz_cb:
+                st.write('Generate_Transit_Dates || %s %s' % (timezone, tz_offset[timezone]))
                 TDates = Generate_Transit_Dates (NEAcsv, timezone, SN_OBS)
                 st.dataframe(TDates)
                 
