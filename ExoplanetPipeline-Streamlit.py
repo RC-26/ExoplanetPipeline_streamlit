@@ -327,10 +327,14 @@ if t_cb:
                 DF['Ingress'    ] = Ingress_All
                 DF['Midpoint'   ] = Midpoint_All
                 DF['Egress'     ] = Egress_All
-            
+
+                for idx in range(len(DF)):
+                    if len(DF['Ingress'][idx]) == 0: droplist.append(idx)
+                DF = DF.drop(droplist)
+
                 DF.to_csv ('Observatory Visible Transit Dates - UTC.csv', index = False, header = True)
                 DF_utc = DF
-            
+
                 return (DF_utc)
 
             options  = [(tz, offset) for tz, offset in tz_offset.items()]
