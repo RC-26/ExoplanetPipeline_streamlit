@@ -297,27 +297,35 @@ if t_cb:
             st.caption   ("This function extracts only the visible transit events per observatory in SkyNet.")
             st.caption   ("The data in this table are the ingress, midpoint, and the egress of the predicted transit events respectively.")
             
-            def Generate_Transit_Dates (CSV, timezone = 'UTC', obs_list = obs_list):
+            ####################################################################################################
+            st.subheader ('Generate_Transit_Dates')
+            st.caption   ("This function extracts only the visible transit events per observatory in SkyNet.")
+            st.caption   ("The data in this table are the ingress, midpoint, and the egress of the predicted transit events respectively.")
+            
+            def Generate_Transit_Dates (CSV, timezone = 'UTC', obs_csv = SN_OBS):
                 st.write('Generate_Transit_Dates || %s %s' % (timezone, tz_offset[timezone]))
-                obs_names = obs_list[0] ; longs = obs_list[1] ; lats = obs_list[2] ; elevs = obs_list[3]
+                obs_names = obs_csv['Observatory'] ; longs = obs_csv['Longitude'] ; lats = obs_csv['Latitude'] ; elevs = obs_csv['Elevation']
                 DF = pd.DataFrame()
-                DF['Observatory'] = obs_names
+                Obs_All     = [] ; Host_All     = [] ; Planet_All = []
+                Ingress_All = [] ; Midpoint_All = [] ; Egress_All = []
             
                 constraints = [ap.AltitudeConstraint(min = 20*u.deg, max = 90*u.deg),
                                ap.AtNightConstraint(-12*u.deg)]
-                multilevel_col = [('Observatory', 'SkyNet')]
+            
                 for idx in range(len(CSV)):
-                    Ingress_All = [] ; Midpoint_All = [] ; Egress_All = []
+                    P_Ingress = [] ; P_Midpoint = [] ; P_Egress = []
                     ra = CSV['ra'][idx] ; dec = CSV['dec'][idx]
                     HostName = CSV['Host Name'][idx] ; PlanetName = CSV['Planet Name'][idx]
                     NextTransits_ALL = NEAcsv['Next Transits [JD]'   ][idx]
                     Tearly_ALL       = NEAcsv['Next Transits [early]'][idx] ; Tlate_ALL = NEAcsv['Next Transits [late]'][idx]
                     for obs_name, lon, lat, elev in zip(obs_names, longs, lats, elevs):
-                        P_Ingress = [] ; P_Midpoint = [] ; P_Egress = []
+                        Obs_Ingress = [] ; Obs_Midpoint = [] ; Obs_Egress = []
+                        Host_All.append (HostName) ; Planet_All.append (PlanetName) ; Obs_All.append (obs_name)
                         location = ac.EarthLocation.from_geodetic (lon, lat, elev*u.m)
                         observer = ap.Observer (location = location, name = obs_name)
                         coord    = SkyCoord (ra = ra, dec = dec, unit = 'deg')
                         target   = FixedTarget (coord = coord, name = obs_name)
+            
                         for Tmid, Tearly, Tlate in zip(NextTransits_ALL, Tearly_ALL, Tlate_ALL):
                             T_mid      = at.Time(Tmid         , format = 'jd', scale = 'utc')
                             Day_Tearly = at.Time(Tmid - Tearly, format = 'jd', scale = 'utc')
@@ -326,29 +334,27 @@ if t_cb:
                                 T_mid      += tz_offset[timezone]*u.hour
                                 Day_Tearly += tz_offset[timezone]*u.hour
                                 Day_Tlate  += tz_offset[timezone]*u.hour
-                                P_Ingress.append (Day_Tearly.iso) ; P_Midpoint.append (T_mid.iso) ; P_Egress.append (Day_Tlate.iso)
-                                if (PlanetName, 'Ingress')  not in multilevel_col: multilevel_col.append ((PlanetName, 'Ingress'))
-                                if (PlanetName, 'Midpoint') not in multilevel_col: multilevel_col.append ((PlanetName, 'Midpoint'))
-                                if (PlanetName, 'Egress')   not in multilevel_col: multilevel_col.append ((PlanetName, 'Egress'))
-                        Ingress_All.append (P_Ingress) ; Midpoint_All.append (P_Midpoint) ; Egress_All.append (P_Egress)
-                    DF[(PlanetName, 'Ingress')]  = Ingress_All
-                    DF[(PlanetName, 'Midpoint')] = Midpoint_All
-                    DF[(PlanetName, 'Egress')]   = Egress_All
+                                Obs_Ingress.append (Day_Tearly.iso) ; Obs_Midpoint.append (T_mid.iso) ; Obs_Egress.append (Day_Tlate.iso)
+                        Ingress_All.append (Obs_Ingress) ; Midpoint_All.append (Obs_Midpoint) ; Egress_All.append (Obs_Egress)
+            
+                DF['Host Name'  ] = Host_All
+                DF['Planet Name'] = Planet_All
+                DF['Observatory'] = Obs_All
+                DF['Ingress'    ] = Ingress_All
+                DF['Midpoint'   ] = Midpoint_All
+                DF['Egress'     ] = Egress_All
+            
                 DF.to_csv ('Observatory Visible Transit Dates - UTC.csv', index = False, header = True)
                 DF_utc = DF
             
-                DF_utc.columns = pd.MultiIndex.from_tuples(multilevel_col)
-            
                 return (DF_utc)
-
+            
             options  = [(tz, offset) for tz, offset in tz_offset.items()]
             timezone = st.selectbox (label = 'Timezone of output dates / UTC offset', options = options, index = options.index(('UTC', 0)))
-            timezone = timezone[0]
             tz_cb    = st.checkbox  ('Submit Timezone')
             if tz_cb:
-                TDates = Generate_Transit_Dates (NEAcsv, timezone, obs_list)
+                TDates = Generate_Transit_Dates (NEAcsv, timezone, SN_OBS)
                 st.dataframe(TDates)
-                # AgGrid(TDates)
                 
                 ####################################################################################################
                 # st.subheader('Generate_Calendars')
