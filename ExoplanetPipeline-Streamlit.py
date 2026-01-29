@@ -328,6 +328,7 @@ if t_cb:
                 DF['Midpoint'   ] = Midpoint_All
                 DF['Egress'     ] = Egress_All
 
+                droplist = []
                 for idx in range(len(DF)):
                     if len(DF['Ingress'][idx]) == 0: droplist.append(idx)
                 DF = DF.drop(droplist)
