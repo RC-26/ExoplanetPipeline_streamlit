@@ -102,6 +102,7 @@ if t_cb:
             SN_OBS['Elevation']   = SN_elev
             SN_OBS['Timezone']    = SN_timezone
             SN_OBS['UTC Offset']  = SN_utcoffset
+            SN_OBS = SN_OBS.sort_values('Observatory')
             st.write ('SkyNet Observatories Geographic Coordinates')
             st.dataframe(SN_OBS)
             # SN_OBS['Aperture']    = SN_aperture
@@ -203,7 +204,7 @@ if t_cb:
             st.subheader('Get_Transits')
             st.caption("This function uses NEA's documented transit algorithm to predict the transit events of target(s), either a specific planet(s) or a system(s), within a specified time window.")
             
-            def Get_Transits (targets, start_date, end_date, Day_skip = 'Transit', custom_obs = None, main_observatory = 'Cerro Tololo'):
+            def Get_Transits (targets, start_date, end_date, obs_csv = SN_OBS):
                 # targets    = input ('%-64s | ' % "Name of Observation Target:     (Example: Proxima Centauri)")
                 if ',' in targets:
                     targets = targets.split(', ')
