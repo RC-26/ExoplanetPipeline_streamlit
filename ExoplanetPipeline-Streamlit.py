@@ -335,7 +335,7 @@ if t_cb:
 
             options  = [(tz, offset) for tz, offset in tz_offset.items()]
             st.write (tz_offset)
-            timezone = st.selectbox (label = 'Timezone of output dates / UTC offset', options = options, index = options.index(('UTC', 0)))
+            timezone = st.selectbox (label = 'Timezone of output dates / UTC offset', options = options, index = options.index(('UTC', 0))) ; timezone = timezone[0]
             tz_cb    = st.checkbox  ('Submit Timezone')
             if tz_cb:
                 st.write('Generate_Transit_Dates || %s %s' % (timezone, tz_offset[timezone]))
