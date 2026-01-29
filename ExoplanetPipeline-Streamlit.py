@@ -214,19 +214,8 @@ if t_cb:
                 # start_date = input ('%-64s | ' % "Start Date: YYYY-MM-DDTHH:MM:SS (Example: '2025-12-01T18:00:00')")
                 # end_date   = input ('%-64s | ' % "End Date:   YYYY-MM-DDTHH:MM:SS (Example: '2025-12-31T18:00:00')")
                 # Day_skip   = input ('%-64s | ' % "Number of day(s) to skip:       (Example: 1)")
-            
-                # custom_obs = input ('%-64s | ' % "Custom Observatory:             (NAME, LON, LAT, ELEV) / None")
-                custom_obs = str(custom_obs)
-                if custom_obs != 'None':
-                    custom_obs = custom_obs.split(',')
-                    lats  = np.append (SN_lat,  float(custom_obs[0])) ; longs = np.append (SN_long, float(custom_obs[1]))
-                    elevs = np.append (SN_elev, float(custom_obs[2])) ; obs   = np.append (SN_obs ,       custom_obs[3])
-                else:
-                    obs = SN_obs ; longs = SN_long ; lats = SN_lat ; elevs = SN_elev
-                observatories = []
-                observatories.append ([obs, longs, lats, elevs]) ; observatories = observatories[0]
-            
-                # main_observatory = input ('%-64ss | ' % "Name of Main Observatory:       (Example: Cerro Tololo)")
+
+                obs = obs_csv['Observatory'] ; longs = obs_csv['Longitude'] ; lats = obs_csv['Latitude'] ; elevs = obs_csv['Elevation']
             
                 NEAcsv = Get_NEAdata (targets)
             
