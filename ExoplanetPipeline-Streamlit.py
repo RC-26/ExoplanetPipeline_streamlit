@@ -34,7 +34,96 @@ from astroplan.plots import plot_sky
 st.title('Observation Scheduling Tool')
 st.markdown ('This pipeline is for helping users plan their observations by extracting data from the NASA Exoplanet Archive to predict the next transit events. As of 2025 December 22, this pipeline mainly focuses on the ground-based telescopes that are part of the SkyNet Robotic Telescope Network.')
 
-# targets = 'TRAPPIST-1'
+####################################################################################################
+st.subheader ('NASA Exoplanet Archive Data')
+st.caption ('This table/CSV contains all the available data of transiting exoplanets in the NASA Exoplanet Archive (NEA)')
+
+def Get_NEAdata (targets = None):
+    if targets != None:
+        if ',' in targets:
+            targets = targets.split(', ')
+        else:
+            targets = [targets]
+        if type(targets[0]) == list:
+          targets = targets[0]
+
+    not_null = []
+    select_data = ['hostname'  ,        'pl_name',             'ra',        'dec',
+                   'sy_dist'   ,        'sy_snum',        'sy_pnum',
+                   'st_mass'   ,         'st_rad',       'pl_masse',    'pl_rade',
+                   'pl_eqt'    , #    'pl_eqterr1',     'pl_eqterr2',
+                   'st_lum'    ,
+                   'pl_orbper' ,  'pl_orbpererr1',  'pl_orbpererr2', 'pl_orbsmax',
+                   'pl_tranmid', 'pl_tranmiderr1', 'pl_tranmiderr2',
+                   'pl_trandur', 'pl_trandurerr1', 'pl_trandurerr2',
+                   'pl_orblper',     'pl_orbtper', 'pl_orbeccen',
+                   'pl_trandep'
+                  ]
+
+    cond_standards = ['hostname' , 'pl_name'   , 'ra', 'dec', 'st_rad', 'pl_rade',
+                      'pl_orbper', 'pl_tranmid', 'pl_trandur']
+    not_null    = [column + ' is not null' for column in select_data if column in cond_standards or 'err' in column]
+    # not_null    = [column + ' is not null' for column in select_data]
+    other_conds = ["discoverymethod = 'Transit'", 'tran_flag = 1']
+    where_conds = np.append (not_null, other_conds)
+
+    select_text = '' ; where_text = ''
+    for d in select_data:
+        if    d == select_data[-1]: select_text += '%s' % d
+        else: select_text += '%s, ' % d
+    for c in where_conds:
+        if    c == where_conds[-1]:  where_text += '%s' % c
+        else: where_text += '%s AND ' % c
+
+    NEAdata = NEA.query_criteria(
+        table  = "pscomppars",
+        select = select_text,
+        where  = where_text)
+    NEAcsv = NEAdata.to_pandas(index = False).sort_values('pl_name')
+    if targets != None:
+        NEAcsv = NEAcsv[NEAcsv[['hostname', 'pl_name']].isin(targets).any(axis = 1)]
+    NEAcsv = NEAcsv.drop(columns=['sky_coord.ra', 'sky_coord.dec'])
+    NEAcsv.rename(columns = {'hostname'  : 'Host Name',
+                              'pl_name'  : 'Planet Name',
+                              'ra'       : 'ra',
+                              'dec'      : 'dec',
+                              'sy_dist'  : 'Distance [pc]',
+                              'sy_snum'  : 'Number of Stars',
+                              'sy_pnum'  : 'Number of Planets',
+                              'st_mass'  : 'Stellar Mass [Solar]',
+                              'st_rad'   : 'Stellar Radius [Solar]',
+                              'st_lum'   : 'Stellar Luminosity [log10(Solar)]',
+                              'pl_masse'        : 'Planet Mass [Earth]',
+                              'pl_rade'         : 'Planet Radius [Earth]',
+                              'pl_eqt'          : 'Planet Temperature [K]',
+                              # 'pl_eqterr1'      : 'Planet Temperature [err 1]',
+                              # 'pl_eqterr2'      : 'Planet Temperature [err 2]',
+                              'pl_trandep'      : 'Transit Depth [%]',
+                              'pl_orbper'       : 'Orbital Period [days]',
+                              'pl_orbpererr1'   : 'Orbital Period [err 1]',
+                              'pl_orbpererr2'   : 'Orbital Period [err 2]',
+                              'pl_orbsmax'      : 'Orbit Semi-Major Axis [au]',
+                              'pl_tranmid'      : 'Transit Midpoint [days]',
+                              'pl_tranmiderr1'  : 'Transit Midpoint [err 1]',
+                              'pl_tranmiderr2'  : 'Transit Midpoint [err 2]',
+                              'pl_trandur'      : 'Transit Duration [hours]',
+                              'pl_trandurerr1'  : 'Transit Duration [err 1]',
+                              'pl_trandurerr2'  : 'Transit Duration [err 2]',
+                              'pl_orblper'      : 'Periastron Argument [deg]',
+                              'pl_orbtper'      : 'Periastron Passage Time [deg]',
+                              'pl_orbeccen'     : 'Eccentricity',
+                              },
+                  inplace = True)
+    NEAcsv.to_csv('NEAcsv.csv', index = False, header = True)
+    NEAcsv = pd.read_csv('NEAcsv.csv')
+
+    return (NEAcsv)
+
+# Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
+# if Display_Option == 'Yes':
+#     NEAcsv = Get_NEAdata()
+st.dataframe(NEAcsv)
+st.write ('Host Stars:', len(sorted(set(NEAcsv['Host Name']))), '| Exoplanets', len(sorted(set(NEAcsv['Planet Name']))))
 
 targets = st.text_input (label = 'Target planet: ', placeholder = 'Example: TRAPPIST-1 c')
 t_cb    = st.checkbox ('Submit target planet')
@@ -108,97 +197,6 @@ if t_cb:
             # SN_OBS['Aperture']    = SN_aperture
             # SN_OBS['Telescopes']  = SN_telescopes
             # SN_OBS.to_csv('SN_OBS.csv', index = False, header = True)
-
-            ####################################################################################################
-            st.subheader ('Get_NEAdata')
-            st.caption ('This function extracts relevant data of identified exoplanets in the NASA Exoplanet Archive (NEA)')
-
-            def Get_NEAdata (targets = None):
-                if targets != None:
-                    if ',' in targets:
-                        targets = targets.split(', ')
-                    else:
-                        targets = [targets]
-                    if type(targets[0]) == list:
-                      targets = targets[0]
-
-                not_null = []
-                select_data = ['hostname'  ,        'pl_name',             'ra',        'dec',
-                               'sy_dist'   ,        'sy_snum',        'sy_pnum',
-                               'st_mass'   ,         'st_rad',       'pl_masse',    'pl_rade',
-                               'pl_eqt'    , #    'pl_eqterr1',     'pl_eqterr2',
-                               'st_lum'    ,
-                               'pl_orbper' ,  'pl_orbpererr1',  'pl_orbpererr2', 'pl_orbsmax',
-                               'pl_tranmid', 'pl_tranmiderr1', 'pl_tranmiderr2',
-                               'pl_trandur', 'pl_trandurerr1', 'pl_trandurerr2',
-                               'pl_orblper',     'pl_orbtper', 'pl_orbeccen',
-                               'pl_trandep'
-                              ]
-
-                cond_standards = ['hostname' , 'pl_name'   , 'ra', 'dec', 'st_rad', 'pl_rade',
-                                  'pl_orbper', 'pl_tranmid', 'pl_trandur']
-                not_null    = [column + ' is not null' for column in select_data if column in cond_standards or 'err' in column]
-                # not_null    = [column + ' is not null' for column in select_data]
-                other_conds = ["discoverymethod = 'Transit'", 'tran_flag = 1']
-                where_conds = np.append (not_null, other_conds)
-
-                select_text = '' ; where_text = ''
-                for d in select_data:
-                    if    d == select_data[-1]: select_text += '%s' % d
-                    else: select_text += '%s, ' % d
-                for c in where_conds:
-                    if    c == where_conds[-1]:  where_text += '%s' % c
-                    else: where_text += '%s AND ' % c
-
-                NEAdata = NEA.query_criteria(
-                    table  = "pscomppars",
-                    select = select_text,
-                    where  = where_text)
-                NEAcsv = NEAdata.to_pandas(index = False).sort_values('pl_name')
-                if targets != None:
-                    NEAcsv = NEAcsv[NEAcsv[['hostname', 'pl_name']].isin(targets).any(axis = 1)]
-                NEAcsv = NEAcsv.drop(columns=['sky_coord.ra', 'sky_coord.dec'])
-                NEAcsv.rename(columns = {'hostname'  : 'Host Name',
-                                          'pl_name'  : 'Planet Name',
-                                          'ra'       : 'ra',
-                                          'dec'      : 'dec',
-                                          'sy_dist'  : 'Distance [pc]',
-                                          'sy_snum'  : 'Number of Stars',
-                                          'sy_pnum'  : 'Number of Planets',
-                                          'st_mass'  : 'Stellar Mass [Solar]',
-                                          'st_rad'   : 'Stellar Radius [Solar]',
-                                          'st_lum'   : 'Stellar Luminosity [log10(Solar)]',
-                                          'pl_masse'        : 'Planet Mass [Earth]',
-                                          'pl_rade'         : 'Planet Radius [Earth]',
-                                          'pl_eqt'          : 'Planet Temperature [K]',
-                                          # 'pl_eqterr1'      : 'Planet Temperature [err 1]',
-                                          # 'pl_eqterr2'      : 'Planet Temperature [err 2]',
-                                          'pl_trandep'      : 'Transit Depth [%]',
-                                          'pl_orbper'       : 'Orbital Period [days]',
-                                          'pl_orbpererr1'   : 'Orbital Period [err 1]',
-                                          'pl_orbpererr2'   : 'Orbital Period [err 2]',
-                                          'pl_orbsmax'      : 'Orbit Semi-Major Axis [au]',
-                                          'pl_tranmid'      : 'Transit Midpoint [days]',
-                                          'pl_tranmiderr1'  : 'Transit Midpoint [err 1]',
-                                          'pl_tranmiderr2'  : 'Transit Midpoint [err 2]',
-                                          'pl_trandur'      : 'Transit Duration [hours]',
-                                          'pl_trandurerr1'  : 'Transit Duration [err 1]',
-                                          'pl_trandurerr2'  : 'Transit Duration [err 2]',
-                                          'pl_orblper'      : 'Periastron Argument [deg]',
-                                          'pl_orbtper'      : 'Periastron Passage Time [deg]',
-                                          'pl_orbeccen'     : 'Eccentricity',
-                                          },
-                              inplace = True)
-                NEAcsv.to_csv('NEAcsv.csv', index = False, header = True)
-                NEAcsv = pd.read_csv('NEAcsv.csv')
-
-                return (NEAcsv)
-
-            Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
-            if Display_Option == 'Yes':
-                NEAcsv = Get_NEAdata()
-                st.dataframe(NEAcsv)
-                st.write ('Host Stars:', len(sorted(set(NEAcsv['Host Name']))), '| Exoplanets', len(sorted(set(NEAcsv['Planet Name']))))
 
             ####################################################################################################
             st.subheader('Get_Transits')
@@ -339,7 +337,6 @@ if t_cb:
                 return (DF_utc)
 
             options  = [(tz, offset) for tz, offset in tz_offset.items()]
-            st.write (tz_offset)
             timezone = st.selectbox (label = 'Timezone of output dates / UTC offset', options = options, index = options.index(('UTC', 0))) ; timezone = timezone[0]
             tz_cb    = st.checkbox  ('Submit Timezone')
             if tz_cb:
