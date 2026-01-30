@@ -35,6 +35,70 @@ st.title('Observation Scheduling Tool')
 st.markdown ('This pipeline is for helping users plan their observations by extracting data from the NASA Exoplanet Archive to predict the next transit events. As of 2025 December 22, this pipeline mainly focuses on the ground-based telescopes that are part of the SkyNet Robotic Telescope Network.')
 
 ####################################################################################################
+# SkyNet Observatories
+SN_obs = ['Cerro Tololo Inter-American Obs', 'Meckering Obs', 'Perth Obs', 'American Public University System Obs',
+          'Astronomical Obs of the Jagiellonian University', 'Fan Mountain Obs', 'Hampden-Sydney College Obs',
+          'Montana Learning Center', 'Morehead', 'Northern Skies Obs', 'Sleaford Obs']
+SN_long       = [-70.805, 116.989, 116.136, -77.863, 19.828, -78.694, -78.471, -105.53, -79.05, -72.166, -105.921]
+SN_lat        = [-30.168, -31.638, -32.007,  39.293, 50.054,  37.879,  37.238,  32.902, 35.914,  44.325,   52.085]
+SN_elev       = [   2286,     197,     386,     170,    318,     546,     164,    2225,    145,     384,      580]
+SN_aperture   = [     40,      16,      16,      24,     20,      24,      16,      16,     24,      16,       16]
+SN_telescopes = [
+    ['CTIO-1.0m', 'Prompt1', 'Prompt2', 'Prompt3', 'Prompt5', 'Prompt6', 'Prompt7', 'Prompt8'],
+    ['PROMPT-MO-1'],
+    ['R-COP'],
+    ['APUS-CDK24'],
+    ['OAUJ-CDK500'],
+    ['RRRT'],
+    ['HSC'],
+    ['MLC-RCOS16'],
+    ['Morehead'],
+    ['NSO-17-CDK'],
+    ['PROMPT-USASK', 'PROMPT-USASK-2', 'USASK-14']
+]
+
+def Timezone_Finder (lon, lat, elev):
+    location = EarthLocation(lon =lon*u.deg, lat = lat*u.deg, height = elev*u.m)
+    tf = TimezoneFinder()
+    timezone_str = tf.certain_timezone_at(lng=location.lon.deg, lat=location.lat.deg)
+    if timezone_str is None:
+        print("Could not determine the time zone for the given location.")
+    else:
+        t_utc = at.Time.now()
+        dt_utc = t_utc.to_datetime(timezone = datetime.timezone.utc)
+        local_timezone = pytz.timezone(timezone_str)
+        dt_local = dt_utc.astimezone(local_timezone)
+        dt_local_str = dt_local.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+
+        return (timezone_str, int(dt_local_str[-5:-2].replace('0', '')))
+
+SN_timezone = [] ; SN_utcoffset = [] ; obs_tz = {}
+tz_offset = {'UTC' : 0, 'Asia/Manila' : 8}
+for lon, lat, elev in zip(SN_long, SN_lat, SN_elev):
+    tz, offset = Timezone_Finder(lon, lat, elev)
+    SN_timezone.append (tz) ; SN_utcoffset.append (offset)
+for obs, tz, offset in zip(SN_obs, SN_timezone, SN_utcoffset):
+    obs_tz.update    ({obs : tz})
+    tz_offset.update ({tz  : offset})
+
+tz_offset = dict(sorted(tz_offset.items(), key=lambda item: item[1]))
+
+obs_list = [SN_obs, SN_long, SN_lat, SN_elev, SN_aperture, SN_telescopes, SN_timezone, SN_utcoffset]
+SN_OBS = pd.DataFrame()
+SN_OBS['Observatory'] = SN_obs
+SN_OBS['Longitude']   = SN_long
+SN_OBS['Latitude']    = SN_lat
+SN_OBS['Elevation']   = SN_elev
+SN_OBS['Timezone']    = SN_timezone
+SN_OBS['UTC Offset']  = SN_utcoffset
+SN_OBS = SN_OBS.sort_values('Observatory')
+st.write ('SkyNet Observatories Geographic Coordinates')
+st.dataframe(SN_OBS)
+# SN_OBS['Aperture']    = SN_aperture
+# SN_OBS['Telescopes']  = SN_telescopes
+# SN_OBS.to_csv('SN_OBS.csv', index = False, header = True)
+
+####################################################################################################
 st.subheader ('NASA Exoplanet Archive Data')
 st.caption ('This table/CSV contains all the available data of transiting exoplanets in the NASA Exoplanet Archive (NEA)')
 
@@ -135,70 +199,6 @@ if t_cb:
         end_date  = st.datetime_input (label = 'End date: ', min_value = start_date)
         ed_submit = st.checkbox ('Submit end date')
         if ed_submit:
-            ####################################################################################################
-            # SkyNet Observatories
-            SN_obs = ['Cerro Tololo Inter-American Obs', 'Meckering Obs', 'Perth Obs', 'American Public University System Obs',
-                      'Astronomical Obs of the Jagiellonian University', 'Fan Mountain Obs', 'Hampden-Sydney College Obs',
-                      'Montana Learning Center', 'Morehead', 'Northern Skies Obs', 'Sleaford Obs']
-            SN_long       = [-70.805, 116.989, 116.136, -77.863, 19.828, -78.694, -78.471, -105.53, -79.05, -72.166, -105.921]
-            SN_lat        = [-30.168, -31.638, -32.007,  39.293, 50.054,  37.879,  37.238,  32.902, 35.914,  44.325,   52.085]
-            SN_elev       = [   2286,     197,     386,     170,    318,     546,     164,    2225,    145,     384,      580]
-            SN_aperture   = [     40,      16,      16,      24,     20,      24,      16,      16,     24,      16,       16]
-            SN_telescopes = [
-                ['CTIO-1.0m', 'Prompt1', 'Prompt2', 'Prompt3', 'Prompt5', 'Prompt6', 'Prompt7', 'Prompt8'],
-                ['PROMPT-MO-1'],
-                ['R-COP'],
-                ['APUS-CDK24'],
-                ['OAUJ-CDK500'],
-                ['RRRT'],
-                ['HSC'],
-                ['MLC-RCOS16'],
-                ['Morehead'],
-                ['NSO-17-CDK'],
-                ['PROMPT-USASK', 'PROMPT-USASK-2', 'USASK-14']
-            ]
-
-            def Timezone_Finder (lon, lat, elev):
-                location = EarthLocation(lon =lon*u.deg, lat = lat*u.deg, height = elev*u.m)
-                tf = TimezoneFinder()
-                timezone_str = tf.certain_timezone_at(lng=location.lon.deg, lat=location.lat.deg)
-                if timezone_str is None:
-                    print("Could not determine the time zone for the given location.")
-                else:
-                    t_utc = at.Time.now()
-                    dt_utc = t_utc.to_datetime(timezone = datetime.timezone.utc)
-                    local_timezone = pytz.timezone(timezone_str)
-                    dt_local = dt_utc.astimezone(local_timezone)
-                    dt_local_str = dt_local.strftime('%Y-%m-%d %H:%M:%S %Z%z')
-
-                    return (timezone_str, int(dt_local_str[-5:-2].replace('0', '')))
-
-            SN_timezone = [] ; SN_utcoffset = [] ; obs_tz = {}
-            tz_offset = {'UTC' : 0, 'Asia/Manila' : 8}
-            for lon, lat, elev in zip(SN_long, SN_lat, SN_elev):
-                tz, offset = Timezone_Finder(lon, lat, elev)
-                SN_timezone.append (tz) ; SN_utcoffset.append (offset)
-            for obs, tz, offset in zip(SN_obs, SN_timezone, SN_utcoffset):
-                obs_tz.update    ({obs : tz})
-                tz_offset.update ({tz  : offset})
-
-            tz_offset = dict(sorted(tz_offset.items(), key=lambda item: item[1]))
-
-            obs_list = [SN_obs, SN_long, SN_lat, SN_elev, SN_aperture, SN_telescopes, SN_timezone, SN_utcoffset]
-            SN_OBS = pd.DataFrame()
-            SN_OBS['Observatory'] = SN_obs
-            SN_OBS['Longitude']   = SN_long
-            SN_OBS['Latitude']    = SN_lat
-            SN_OBS['Elevation']   = SN_elev
-            SN_OBS['Timezone']    = SN_timezone
-            SN_OBS['UTC Offset']  = SN_utcoffset
-            SN_OBS = SN_OBS.sort_values('Observatory')
-            st.write ('SkyNet Observatories Geographic Coordinates')
-            st.dataframe(SN_OBS)
-            # SN_OBS['Aperture']    = SN_aperture
-            # SN_OBS['Telescopes']  = SN_telescopes
-            # SN_OBS.to_csv('SN_OBS.csv', index = False, header = True)
-
             ####################################################################################################
             st.subheader('Get_Transits')
             st.caption("This function uses NEA's documented transit algorithm to predict the transit events of target(s), either a specific planet(s) or a system(s), within a specified time window.")
