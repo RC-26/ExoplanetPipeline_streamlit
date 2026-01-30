@@ -92,7 +92,8 @@ SN_OBS['Elevation']   = SN_elev
 SN_OBS['Timezone']    = SN_timezone
 SN_OBS['UTC Offset']  = SN_utcoffset
 SN_OBS = SN_OBS.sort_values('Observatory')
-st.write ('SkyNet Observatories Geographic Coordinates')
+st.subheader ('SkyNet Observatories')
+st.caption ('This table/CSV contains all the available data SkyNet observatories and their geographical coordinates')
 st.dataframe(SN_OBS)
 # SN_OBS['Aperture']    = SN_aperture
 # SN_OBS['Telescopes']  = SN_telescopes
