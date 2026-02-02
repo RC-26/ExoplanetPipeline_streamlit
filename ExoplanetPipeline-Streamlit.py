@@ -101,8 +101,6 @@ st.dataframe(SN_OBS)
 
 ####################################################################################################
 st.subheader ('NASA Exoplanet Archive (NEA) Data')
-st.markdown  ('Do you want to see all the available exoplanet data in NEA?')
-st.caption   ('This may help you if you are unsure of the target you want to observe.')
 
 def Get_NEAdata (targets = None):
     if targets != None:
@@ -186,6 +184,7 @@ def Get_NEAdata (targets = None):
     return (NEAcsv)
 
 Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
+st.caption   ('This may help you if you are unsure of the target you want to observe.')
 if Display_Option == 'Yes':
     st.caption ('This table/CSV contains all the available data of transiting exoplanets in the NASA Exoplanet Archive (NEA)')
     NEAcsv = Get_NEAdata()
