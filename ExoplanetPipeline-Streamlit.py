@@ -100,8 +100,9 @@ st.dataframe(SN_OBS)
 # SN_OBS.to_csv('SN_OBS.csv', index = False, header = True)
 
 ####################################################################################################
-st.subheader ('NASA Exoplanet Archive Data')
-st.caption ('This table/CSV contains all the available data of transiting exoplanets in the NASA Exoplanet Archive (NEA)')
+st.subheader ('NASA Exoplanet Archive (NEA) Data')
+st.markdown  ('Do you want to see all the available exoplanet data in NEA?')
+st.caption   ('This may help you if you are unsure of the target you want to observe.')
 
 def Get_NEAdata (targets = None):
     if targets != None:
@@ -184,12 +185,12 @@ def Get_NEAdata (targets = None):
 
     return (NEAcsv)
 
-# Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
-# if Display_Option == 'Yes':
-#     NEAcsv = Get_NEAdata()
-NEAcsv = Get_NEAdata()
-st.dataframe(NEAcsv)
-st.write ('Host Stars:', len(sorted(set(NEAcsv['Host Name']))), '| Exoplanets', len(sorted(set(NEAcsv['Planet Name']))))
+Display_Option = st.radio ('Display the data of all available NEA transiting exoplanets?', ['No', 'Yes'])
+if Display_Option == 'Yes':
+    st.caption ('This table/CSV contains all the available data of transiting exoplanets in the NASA Exoplanet Archive (NEA)')
+    NEAcsv = Get_NEAdata()
+    st.dataframe(NEAcsv)
+    st.write ('Host Stars:', len(sorted(set(NEAcsv['Host Name']))), '| Exoplanets', len(sorted(set(NEAcsv['Planet Name']))))
 
 targets = st.text_input (label = 'Target planet: ', placeholder = 'Example: TRAPPIST-1 c')
 t_cb    = st.checkbox ('Submit target planet')
