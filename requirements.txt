@@ -1,7 +1,7 @@
 matplotlib==3.10.0
 icalendar==6.3.2
 astropy
-ics==0.7.2
+# ics==0.7.2
 astroplan==0.10.1
 astroquery==0.4.11
 timezonefinder==8.2.0
