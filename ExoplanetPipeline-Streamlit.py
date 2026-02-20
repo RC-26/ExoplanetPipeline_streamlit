@@ -6,7 +6,8 @@ import matplotlib.lines as mlines
 import sys ; import os ; import glob
 import timeit
 from PIL import Image
-from ics import Calendar, Event ; import datetime
+# from ics import Calendar, Event
+import datetime
 from timezonefinder import TimezoneFinder ; import pytz
 import streamlit as st
 
