@@ -249,7 +249,7 @@ if t_cb:
                         nexttransit      = MidTransit      + epochs * np.asarray(OrbitalPeriod     )*u.day
                         NextTransit_err1 = MidTransit_err1 + epochs * np.asarray(OrbitalPeriod_err1)*u.day
                         NextTransit_err2 = MidTransit_err2 + epochs * np.asarray(OrbitalPeriod_err2)*u.day
-                        nexttransits = [float(at.Time(jd, format = 'jd', scale = 'utc').value) for jd in nexttransit]
+                        nexttransits = [float(at.Time(jd, format = 'jd', scale = 'utc').value) + np.round(OrbitalPeriod.value/2) for jd in nexttransit]
                         epoch_num += 1
 
                     # NextTransits     = [date       for date       in     nexttransits                    if date <= end_date.jd]
