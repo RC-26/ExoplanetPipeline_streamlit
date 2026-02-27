@@ -293,19 +293,24 @@ if t_cb:
                 DF = pd.DataFrame()
                 Obs_All     = [] ; Host_All     = [] ; Planet_All = []
                 Ingress_All = [] ; Midpoint_All = [] ; Egress_All = []
+                Obs_Ingress = [] ; Obs_Midpoint = [] ; Obs_Egress = []
+                Transit_Numbers = []
             
                 constraints = [ap.AltitudeConstraint(min = 20*u.deg, max = 90*u.deg),
                                ap.AtNightConstraint(-12*u.deg)]
             
                 for idx in range(len(CSV)):
+                    print ('%-4s/%-4s' % (idx+1, len(CSV)), end = '\r')
                     P_Ingress = [] ; P_Midpoint = [] ; P_Egress = []
                     ra = CSV['ra'][idx] ; dec = CSV['dec'][idx]
                     HostName = CSV['Host Name'][idx] ; PlanetName = CSV['Planet Name'][idx]
                     NextTransits_ALL = NEAcsv['Next Transits [JD]'   ][idx]
                     Tearly_ALL       = NEAcsv['Next Transits [early]'][idx] ; Tlate_ALL = NEAcsv['Next Transits [late]'][idx]
+            
                     for obs_name, lon, lat, elev in zip(obs_names, longs, lats, elevs):
-                        Obs_Ingress = [] ; Obs_Midpoint = [] ; Obs_Egress = []
-                        Host_All.append (HostName) ; Planet_All.append (PlanetName) ; Obs_All.append (obs_name)
+                        transit_number = 0
+                        # Obs_Ingress = [] ; Obs_Midpoint = [] ; Obs_Egress = []
+                        # Host_All.append (HostName) ; Planet_All.append (PlanetName) ; Obs_All.append (obs_name)
                         location = ac.EarthLocation.from_geodetic (lon, lat, elev*u.m)
                         observer = ap.Observer (location = location, name = obs_name)
                         coord    = SkyCoord (ra = ra, dec = dec, unit = 'deg')
@@ -316,28 +321,34 @@ if t_cb:
                             Day_Tearly = at.Time(Tmid - Tearly, format = 'jd', scale = 'utc')
                             Day_Tlate  = at.Time(Tmid - Tlate , format = 'jd', scale = 'utc')
                             if ap.is_observable(constraints, observer, target, time_range = [Day_Tearly, Day_Tlate]) == True:
+                                transit_number += 1
                                 T_mid      += tz_offset[timezone]*u.hour
                                 Day_Tearly += tz_offset[timezone]*u.hour
                                 Day_Tlate  += tz_offset[timezone]*u.hour
+                                Host_All.append (HostName) ; Planet_All.append (PlanetName) ; Obs_All.append (obs_name)
+                                Transit_Numbers.append (int(transit_number))
                                 Obs_Ingress.append (Day_Tearly.iso) ; Obs_Midpoint.append (T_mid.iso) ; Obs_Egress.append (Day_Tlate.iso)
-                        Ingress_All.append (Obs_Ingress) ; Midpoint_All.append (Obs_Midpoint) ; Egress_All.append (Obs_Egress)
+                        # Ingress_All.append (Obs_Ingress) ; Midpoint_All.append (Obs_Midpoint) ; Egress_All.append (Obs_Egress)
             
                 DF['Host Name'  ] = Host_All
                 DF['Planet Name'] = Planet_All
                 DF['Observatory'] = Obs_All
-                DF['Ingress'    ] = Ingress_All
-                DF['Midpoint'   ] = Midpoint_All
-                DF['Egress'     ] = Egress_All
-
+                # DF['Ingress'    ] = Ingress_All
+                # DF['Midpoint'   ] = Midpoint_All
+                # DF['Egress'     ] = Egress_All
+                DF['Transit Number'] = Transit_Numbers
+                DF['Ingress'    ] = Obs_Ingress
+                DF['Midpoint'   ] = Obs_Midpoint
+                DF['Egress'     ] = Obs_Egress
+            
                 droplist = []
                 for idx in range(len(DF)):
                     if len(DF['Ingress'][idx]) == 0: droplist.append(idx)
-                DF = DF.drop(droplist)
-
+                DF = DF.drop(droplist).reset_index()
+                
                 DF.to_csv ('Observatory Visible Transit Dates - UTC.csv', index = False, header = True)
-                DF_utc = DF
-
-                return (DF_utc)
+            
+                return (DF)
 
             options  = [(tz, offset) for tz, offset in tz_offset.items()]
             timezone = st.selectbox (label = 'Timezone of output dates / UTC offset', options = options, index = options.index(('UTC', 0))) ; timezone = timezone[0]
